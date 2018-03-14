@@ -37,6 +37,10 @@ public class PosicoesVeiculos {
 	private String dataHoraMsg;
 	private Long nrMacro;
 	private String texto;
+	
+	private String manifesto;
+	private String enviado;
+	
 	public Long getId() {
 		return id;
 	}
@@ -162,6 +166,18 @@ public class PosicoesVeiculos {
 	}
 	public void setTexto(String texto) {
 		this.texto = texto;
+	}
+	public String getManifesto() {
+		return manifesto;
+	}
+	public void setManifesto(String manifesto) {
+		this.manifesto = manifesto;
+	}
+	public String getEnviado() {
+		return enviado;
+	}
+	public void setEnviado(String enviado) {
+		this.enviado = enviado;
 	}
 	
 }

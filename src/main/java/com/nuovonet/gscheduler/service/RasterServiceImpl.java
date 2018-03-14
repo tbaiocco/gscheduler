@@ -1,10 +1,17 @@
 package com.nuovonet.gscheduler.service;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import javax.sql.DataSource;
 import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import com.nuovonet.gscheduler.model.PosicoesVeiculos;
@@ -22,15 +29,17 @@ public class RasterServiceImpl implements RasterService {
 
 	@Autowired
 	PosicoesVeiculosRepository posicoesVeiculosRepository;
+	@Autowired
+	JdbcTemplate jdbcTemplate;
 	
 	public void executaAtualizacao() {
 		LOGGER.info("executou >>> RasterServiceImpl.executaAtualizacao()");
 		RasterExecutor rasterExecutor = new RasterExecutorImpl();
-		BaseRetorno retorno = rasterExecutor.getPosicoes(null,null);
+		BaseRetorno retorno = rasterExecutor.getPosicoes("Ultimas","0");
 		if (retorno.getPosicoes() != null)
 			for (Posicao pos : retorno.getPosicoes()) {
 				LOGGER.info("codPosicao:"+pos.getCodPosicao());
-				LOGGER.info("placa:"+pos.getPlaca());
+				LOGGER.info("placa:"+limpaCampo(pos.getPlaca()));
 				LOGGER.info("dataHoraPos:"+pos.getDataHoraPos());
 				LOGGER.info("codTerminal:"+pos.getCodTerminal());
 				LOGGER.info("local:"+pos.getPosReferencia());
@@ -59,12 +68,38 @@ public class RasterServiceImpl implements RasterService {
 //				ed.setDataHoraMsg(msg.getDataHoraMsg());
 //				ed.setNrMacro(msg.getNrMacro());
 //				ed.setTexto(msg.getTexto());
-				if(posicoesVeiculosRepository.countByCodPosicao(pos.getCodPosicao()) <= 0){
+				if(posicoesVeiculosRepository.countByCodPosicaoAndPlacaAndDataHoraPos(pos.getCodPosicao(), ed.getPlaca(), pos.getDataHoraPos()) <= 0){
+					
+					String sqlMan = "select manifestos.oid_manifesto " +
+					"from manifestos " +
+					"where oid_veiculo='" + ed.getPlaca() +"' " +
+					"and dt_recebimento_mdfe <= '" + ed.getDataHoraPos() + "'" +
+					"and dm_status_mdfe = '100' " +
+					"and ((dm_status_encerramento_mdfe = '135' and dt_recebimento_encerramento_mdfe >= '" + ed.getDataHoraPos() + "')" +
+					" or dm_status_encerramento_mdfe is null) " +
+					"and dm_status_cancelamento_mdfe is null";
+					
+					ed.setManifesto(getManifesto(sqlMan));
+					
 					//não duplicar posicoes pelo código
-					posicoesVeiculosRepository.save(ed);
+					posicoesVeiculosRepository.saveAndFlush(ed);
 				}
 			}
 
+	}
+	
+	@SuppressWarnings("unchecked")
+	private String getManifesto(String sql) {
+		try {
+			return (String)jdbcTemplate.queryForObject(sql, new RowMapper() {
+				public Object mapRow(ResultSet rs, int line) throws SQLException {
+					String aux = rs.getString("oid_manifesto");
+					return aux;
+				}
+			});
+		} catch (Exception e) {
+			return null;
+		}
 	}
 	
 	public void verificaBanco() {

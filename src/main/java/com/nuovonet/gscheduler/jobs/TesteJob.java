@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import com.nuovonet.gscheduler.config.QuartzConfiguration;
 import com.nuovonet.gscheduler.service.TesteService;
+import com.nuovonet.gscheduler.service.WebColSenderService;
 
 @Component
 @DisallowConcurrentExecution
@@ -32,11 +33,15 @@ public class TesteJob implements Job {
 	
 	@Value("${job.frequency.TesteJob}")
 	private long frequency;
+	
+	@Autowired
+	private WebColSenderService webColSenderService;
 
 	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSSS");
 
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		log.info("DESABILITADO TesteJob > frequencia {}", frequency);
+		webColSenderService.enviaPosicao();
 //		log.info("Executando TesteJob > frequencia {}", frequency);
 //		testeService.fazAlgo();
 //		log.debug("TesteJob rodou em: {}", dateFormat.format(new Date()));
